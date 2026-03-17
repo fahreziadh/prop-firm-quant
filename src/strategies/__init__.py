@@ -4,6 +4,9 @@ from src.strategies.sr_bounce import SRBounceStrategy
 from src.strategies.rsi_divergence import RSIDivergenceStrategy
 from src.strategies.london_breakout import LondonBreakoutStrategy
 from src.strategies.macd_ob import MACDOrderBlockStrategy
+from src.strategies.high_conviction import HighConvictionStrategy
+from src.strategies.filtered_london_breakout import FilteredLondonBreakoutStrategy
+from src.strategies.filtered_structure_break import FilteredStructureBreakStrategy
 
 STRATEGIES = {
     "ema_cross": EMACrossStrategy,
@@ -12,4 +15,7 @@ STRATEGIES = {
     "rsi_divergence": RSIDivergenceStrategy,
     "london_breakout": LondonBreakoutStrategy,
     "macd_ob": MACDOrderBlockStrategy,
+    "high_conviction": HighConvictionStrategy,
+    "filtered_london_breakout": FilteredLondonBreakoutStrategy,
+    "filtered_structure_break": FilteredStructureBreakStrategy,
 }
