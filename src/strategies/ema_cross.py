@@ -1,7 +1,8 @@
-"""EMA Crossover Strategy."""
+"""EMA Crossover Strategy with ADX filter."""
 from backtesting import Strategy
 from backtesting.lib import crossover
-from src.indicators.technical import ema, atr_from_cols
+from src.indicators.technical import ema, atr_from_cols, adx
+import numpy as np
 
 
 class EMACrossStrategy(Strategy):
@@ -10,15 +11,23 @@ class EMACrossStrategy(Strategy):
     atr_period = 14
     atr_sl_multiplier = 1.5
     atr_tp_multiplier = 3.0
+    adx_period = 14
+    adx_threshold = 25
 
     def init(self):
         self.ema_fast = self.I(ema, self.data.Close, self.fast_period)
         self.ema_slow = self.I(ema, self.data.Close, self.slow_period)
         self.atr = self.I(atr_from_cols, self.data.High, self.data.Low, self.data.Close, self.atr_period)
+        self.adx_val = self.I(adx, self.data.High, self.data.Low, self.data.Close, self.adx_period)
 
     def next(self):
         atr_val = self.atr[-1]
         if np.isnan(atr_val) or atr_val <= 0:
+            return
+
+        # ADX filter: only trade in trending markets
+        adx_now = self.adx_val[-1]
+        if np.isnan(adx_now) or adx_now < self.adx_threshold:
             return
 
         price = self.data.Close[-1]
@@ -29,6 +38,3 @@ class EMACrossStrategy(Strategy):
             self.buy(sl=price - sl_dist, tp=price + tp_dist)
         elif crossover(self.ema_slow, self.ema_fast):
             self.sell(sl=price + sl_dist, tp=price - tp_dist)
-
-
-import numpy as np

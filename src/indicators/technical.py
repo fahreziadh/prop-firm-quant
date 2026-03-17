@@ -60,6 +60,28 @@ def bollinger_bands(series, period: int = 20, std_dev: float = 2.0):
     return mid + std_dev * std, mid, mid - std_dev * std
 
 
+def adx(high, low, close, period: int = 14):
+    """Average Directional Index from separate H/L/C arrays."""
+    h, l, c = _to_series(high), _to_series(low), _to_series(close)
+    plus_dm = h.diff()
+    minus_dm = -l.diff()
+    plus_dm[plus_dm < 0] = 0
+    minus_dm[minus_dm < 0] = 0
+    # When both are positive, keep the larger one
+    mask = plus_dm > minus_dm
+    minus_dm[mask & (plus_dm > 0)] = 0
+    plus_dm[~mask & (minus_dm > 0)] = 0
+
+    c_prev = c.shift(1)
+    tr = pd.concat([h - l, (h - c_prev).abs(), (l - c_prev).abs()], axis=1).max(axis=1)
+    atr_val = tr.ewm(span=period, adjust=False).mean()
+    plus_di = 100 * plus_dm.ewm(span=period, adjust=False).mean() / atr_val
+    minus_di = 100 * minus_dm.ewm(span=period, adjust=False).mean() / atr_val
+    dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di)
+    adx_val = dx.ewm(span=period, adjust=False).mean()
+    return adx_val.values
+
+
 def support_resistance(df: pd.DataFrame, lookback: int = 50, num_levels: int = 5) -> dict:
     """Detect S/R levels using pivot highs/lows."""
     h, l = df["High"].values, df["Low"].values

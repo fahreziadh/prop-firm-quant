@@ -1,6 +1,6 @@
-"""Break of Structure (BOS) Strategy."""
+"""Break of Structure (BOS) Strategy with EMA 200 trend filter."""
 from backtesting import Strategy
-from src.indicators.technical import atr_from_cols
+from src.indicators.technical import atr_from_cols, ema
 import numpy as np
 
 
@@ -29,11 +29,13 @@ class StructureBreakStrategy(Strategy):
     atr_period = 14
     atr_sl_multiplier = 1.0
     atr_tp_multiplier = 2.5
+    ema_trend_period = 200
 
     def init(self):
         self.atr = self.I(atr_from_cols, self.data.High, self.data.Low, self.data.Close, self.atr_period)
         self.swing_h = self.I(_swing_highs, self.data.High, self.lookback)
         self.swing_l = self.I(_swing_lows, self.data.Low, self.lookback)
+        self.ema200 = self.I(ema, self.data.Close, self.ema_trend_period)
         self._last_sh = None
         self._last_sl = None
 
@@ -55,14 +57,21 @@ class StructureBreakStrategy(Strategy):
         sl_dist = atr_val * self.atr_sl_multiplier
         tp_dist = atr_val * self.atr_tp_multiplier
 
+        ema200_val = self.ema200[-1]
+        if np.isnan(ema200_val):
+            return
+
+        # Only buy above EMA 200, only sell below EMA 200
         if price > self._last_sh and prev <= self._last_sh:
-            if not self.position.is_long:
-                self.position.close()
-                self.buy(sl=price - sl_dist, tp=price + tp_dist)
-                self._last_sh = price
+            if price > ema200_val:  # Trend filter
+                if not self.position.is_long:
+                    self.position.close()
+                    self.buy(sl=price - sl_dist, tp=price + tp_dist)
+                    self._last_sh = price
 
         elif price < self._last_sl and prev >= self._last_sl:
-            if not self.position.is_short:
-                self.position.close()
-                self.sell(sl=price + sl_dist, tp=price - tp_dist)
-                self._last_sl = price
+            if price < ema200_val:  # Trend filter
+                if not self.position.is_short:
+                    self.position.close()
+                    self.sell(sl=price + sl_dist, tp=price - tp_dist)
+                    self._last_sl = price

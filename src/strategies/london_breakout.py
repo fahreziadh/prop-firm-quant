@@ -1,16 +1,18 @@
-"""London Breakout Strategy."""
+"""London Breakout Strategy with enhanced filters."""
 from backtesting import Strategy
 from src.indicators.technical import atr_from_cols
 import numpy as np
 
 
 class LondonBreakoutStrategy(Strategy):
-    asian_start = 0   # UTC hour
-    asian_end = 7     # UTC hour
+    asian_start = 0
+    asian_end = 7
     london_start = 7
     london_end = 10
     tp_multiplier = 1.5
     atr_period = 14
+    asian_range_min_pct = 0.30  # Min 30% of ATR
+    asian_range_max_pct = 0.80  # Max 80% of ATR
 
     def init(self):
         self.atr = self.I(atr_from_cols, self.data.High, self.data.Low, self.data.Close, self.atr_period)
@@ -25,18 +27,23 @@ class LondonBreakoutStrategy(Strategy):
             return
 
         idx = self.data.index[-1]
-        # Detect daily data: check if consecutive bars are ~1 day apart
+        # Detect daily data
         if len(self.data) >= 2:
             delta = self.data.index[-1] - self.data.index[-2]
-            if hasattr(delta, 'total_seconds') and delta.total_seconds() >= 82800:  # >= 23h
+            if hasattr(delta, 'total_seconds') and delta.total_seconds() >= 82800:
                 self._daily_breakout(atr_val)
                 return
 
         try:
             hour = idx.hour
             date = idx.date()
+            dow = idx.weekday()  # 0=Monday, 4=Friday
         except AttributeError:
             self._daily_breakout(atr_val)
+            return
+
+        # Skip Monday and Friday
+        if dow == 0 or dow == 4:
             return
 
         # Reset on new day
@@ -64,23 +71,28 @@ class LondonBreakoutStrategy(Strategy):
                 return
 
             asian_range = self._asian_high - self._asian_low
-            if asian_range <= 0 or asian_range > atr_val * 2.0:
-                return  # Skip if range too wide (choppy)
+            if asian_range <= 0:
+                return
+
+            # Asian range must be 30-80% of ATR
+            range_ratio = asian_range / atr_val
+            if range_ratio < self.asian_range_min_pct or range_ratio > self.asian_range_max_pct:
+                return
 
             price = self.data.Close[-1]
             high = self.data.High[-1]
             low = self.data.Low[-1]
             tp_dist = asian_range * self.tp_multiplier
 
-            # Breakout above Asian high
-            if high > self._asian_high and price > self._asian_high:
+            # Breakout above Asian high - candle must CLOSE above range
+            if price > self._asian_high:
                 sl_dist = price - self._asian_low
                 if sl_dist > 0:
                     self.position.close()
                     self.buy(sl=self._asian_low, tp=price + tp_dist)
                     self._traded_today = True
-            # Breakout below Asian low
-            elif low < self._asian_low and price < self._asian_low:
+            # Breakout below Asian low - candle must CLOSE below range
+            elif price < self._asian_low:
                 sl_dist = self._asian_high - price
                 if sl_dist > 0:
                     self.position.close()
@@ -88,11 +100,17 @@ class LondonBreakoutStrategy(Strategy):
                     self._traded_today = True
 
     def _daily_breakout(self, atr_val):
-        """Simplified breakout for daily timeframe using 2-bar consolidation range."""
         if len(self.data) < 4:
             return
 
-        # Use previous 2 bars as consolidation range
+        # Skip Monday(0) and Friday(4)
+        try:
+            dow = self.data.index[-1].weekday()
+            if dow == 0 or dow == 4:
+                return
+        except AttributeError:
+            pass
+
         recent_high = max(self.data.High[-3], self.data.High[-2])
         recent_low = min(self.data.Low[-3], self.data.Low[-2])
         range_width = recent_high - recent_low
@@ -100,9 +118,15 @@ class LondonBreakoutStrategy(Strategy):
         if range_width <= 0:
             return
 
+        # Range filter: 30-80% of ATR
+        range_ratio = range_width / atr_val
+        if range_ratio < self.asian_range_min_pct or range_ratio > self.asian_range_max_pct:
+            return
+
         price = self.data.Close[-1]
         tp_dist = range_width * self.tp_multiplier
 
+        # Must close outside range
         if price > recent_high:
             if not self.position.is_long:
                 self.position.close()
