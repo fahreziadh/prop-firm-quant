@@ -8,6 +8,9 @@ from src.strategies.high_conviction import HighConvictionStrategy
 from src.strategies.filtered_london_breakout import FilteredLondonBreakoutStrategy
 from src.strategies.filtered_structure_break import FilteredStructureBreakStrategy
 from src.strategies.sr_break_retest import SRBreakRetestStrategy
+from src.strategies.scalp_ema_momentum import ScalpEMAMomentumStrategy
+from src.strategies.scalp_sr_quick import ScalpSRQuickStrategy
+from src.strategies.scalp_breakout import ScalpBreakoutStrategy
 
 STRATEGIES = {
     "ema_cross": EMACrossStrategy,
@@ -20,4 +23,7 @@ STRATEGIES = {
     "filtered_london_breakout": FilteredLondonBreakoutStrategy,
     "filtered_structure_break": FilteredStructureBreakStrategy,
     "sr_break_retest": SRBreakRetestStrategy,
+    "scalp_ema_momentum": ScalpEMAMomentumStrategy,
+    "scalp_sr_quick": ScalpSRQuickStrategy,
+    "scalp_breakout": ScalpBreakoutStrategy,
 }
