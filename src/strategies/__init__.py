@@ -7,6 +7,7 @@ from src.strategies.macd_ob import MACDOrderBlockStrategy
 from src.strategies.high_conviction import HighConvictionStrategy
 from src.strategies.filtered_london_breakout import FilteredLondonBreakoutStrategy
 from src.strategies.filtered_structure_break import FilteredStructureBreakStrategy
+from src.strategies.sr_break_retest import SRBreakRetestStrategy
 
 STRATEGIES = {
     "ema_cross": EMACrossStrategy,
@@ -18,4 +19,5 @@ STRATEGIES = {
     "high_conviction": HighConvictionStrategy,
     "filtered_london_breakout": FilteredLondonBreakoutStrategy,
     "filtered_structure_break": FilteredStructureBreakStrategy,
+    "sr_break_retest": SRBreakRetestStrategy,
 }
