@@ -11,6 +11,7 @@ from src.strategies.sr_break_retest import SRBreakRetestStrategy
 from src.strategies.scalp_ema_momentum import ScalpEMAMomentumStrategy
 from src.strategies.scalp_sr_quick import ScalpSRQuickStrategy
 from src.strategies.scalp_breakout import ScalpBreakoutStrategy
+from src.strategies.scalp_session_momentum import ScalpSessionMomentumStrategy
 
 STRATEGIES = {
     "ema_cross": EMACrossStrategy,
@@ -26,4 +27,5 @@ STRATEGIES = {
     "scalp_ema_momentum": ScalpEMAMomentumStrategy,
     "scalp_sr_quick": ScalpSRQuickStrategy,
     "scalp_breakout": ScalpBreakoutStrategy,
+    "scalp_session_momentum": ScalpSessionMomentumStrategy,
 }
