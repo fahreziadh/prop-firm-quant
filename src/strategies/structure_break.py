@@ -39,6 +39,12 @@ class StructureBreakStrategy(Strategy):
         self._last_sh = None
         self._last_sl = None
 
+    # Data-driven filters from trade loss analysis
+    skip_hours = {4, 6, 12, 22}       # WR < 20% at these hours
+    focus_hours = {8, 11, 15, 18, 19, 20, 21}  # WR > 40%, positive PnL
+    skip_weekdays = {2}                # Wednesday: 23% WR, biggest loser
+    atr_max = 17                       # Loss avg ATR 19.24, win avg 15.11 (XAUUSD-specific, 0=disabled)
+
     def next(self):
         atr_val = self.atr[-1]
         if np.isnan(atr_val) or atr_val <= 0:
@@ -51,6 +57,33 @@ class StructureBreakStrategy(Strategy):
 
         if self._last_sh is None or self._last_sl is None:
             return
+
+        # --- Data-driven filters ---
+        idx = self.data.index[-1]
+        try:
+            hour = idx.hour
+            dow = idx.weekday()
+        except AttributeError:
+            hour = None
+            dow = None
+
+        if hour is not None:
+            # Skip bad hours
+            if hour in self.skip_hours:
+                return
+            # Only trade focus hours
+            if hour not in self.focus_hours:
+                return
+
+        if dow is not None:
+            # Skip Wednesday
+            if dow in self.skip_weekdays:
+                return
+
+        # ATR volatility filter: skip over-volatile conditions (0=disabled)
+        if self.atr_max > 0 and atr_val > self.atr_max:
+            return
+        # --- End data-driven filters ---
 
         price = self.data.Close[-1]
         prev = self.data.Close[-2] if len(self.data.Close) > 1 else price

@@ -14,6 +14,10 @@ class LondonBreakoutStrategy(Strategy):
     asian_range_min_pct = 0.30  # Min 30% of ATR
     asian_range_max_pct = 0.80  # Max 80% of ATR
 
+    # Data-driven filters from trade loss analysis
+    atr_min = 17         # Win avg ATR 19.07, loss avg 16.04 (XAUUSD-specific, 0=disabled)
+    focus_hours = {19}   # 18/21 trades, 61% WR. Other hours 0% WR
+
     def init(self):
         self.atr = self.I(atr_from_cols, self.data.High, self.data.Low, self.data.Close, self.atr_period)
         self._asian_high = None
@@ -24,6 +28,10 @@ class LondonBreakoutStrategy(Strategy):
     def next(self):
         atr_val = self.atr[-1]
         if np.isnan(atr_val) or atr_val <= 0:
+            return
+
+        # ATR minimum filter: need enough volatility (0=disabled)
+        if self.atr_min > 0 and atr_val < self.atr_min:
             return
 
         idx = self.data.index[-1]
@@ -63,11 +71,15 @@ class LondonBreakoutStrategy(Strategy):
                 self._asian_high = max(self._asian_high, h)
                 self._asian_low = min(self._asian_low, l)
 
-        # London session entry
-        elif self.london_start <= hour < self.london_end:
+        # London/NY session entry (expanded window for focus hours)
+        elif hour >= self.london_start:
             if self._asian_high is None or self._asian_low is None:
                 return
             if self._traded_today:
+                return
+
+            # Focus hour filter: only trade at statistically profitable hours
+            if self.focus_hours and hour not in self.focus_hours:
                 return
 
             asian_range = self._asian_high - self._asian_low
