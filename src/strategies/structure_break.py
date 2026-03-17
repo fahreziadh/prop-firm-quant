@@ -45,10 +45,20 @@ class StructureBreakStrategy(Strategy):
     skip_weekdays = {2}                # Wednesday: 23% WR, biggest loser
     atr_max = 17                       # Loss avg ATR 19.24, win avg 15.11 (XAUUSD-specific, 0=disabled)
 
+    news_filter_enabled = False  # Set by backtest engine when news_blackout column present
+
     def next(self):
         atr_val = self.atr[-1]
         if np.isnan(atr_val) or atr_val <= 0:
             return
+
+        # News filter: skip entry during high-impact news blackout
+        if self.news_filter_enabled:
+            try:
+                if self.data.news_blackout[-1]:
+                    return
+            except AttributeError:
+                pass
 
         if not np.isnan(self.swing_h[-1]):
             self._last_sh = self.swing_h[-1]

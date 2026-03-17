@@ -5,6 +5,8 @@ from src import load_config
 from src.data.fetcher import fetch
 from src.strategies import STRATEGIES
 from src.analysis.report import generate_report
+from src.data.news_calendar import get_news_events
+from src.filters.news_filter import add_news_blackout_column
 
 
 def run_backtest(
@@ -44,6 +46,17 @@ def run_backtest(
     params.update(strat_config)
     if strategy_params:
         params.update(strategy_params)
+
+    # News filter integration
+    news_config = config.get("news_filter", {})
+    if news_config.get("enabled", False):
+        window = news_config.get("window_minutes", 60)
+        impact = news_config.get("impact_levels", ["high"])
+        start_dt = df.index[0]
+        end_dt = df.index[-1]
+        events = get_news_events(start_dt, end_dt)
+        df = add_news_blackout_column(df, events, window_minutes=window, impact_levels=impact)
+        params["news_filter_enabled"] = True
 
     # Run backtest
     bt = Backtest(df, strategy_cls, cash=cash, commission=commission, exclusive_orders=True)

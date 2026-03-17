@@ -18,6 +18,8 @@ class LondonBreakoutStrategy(Strategy):
     atr_min = 17         # Win avg ATR 19.07, loss avg 16.04 (XAUUSD-specific, 0=disabled)
     focus_hours = {19}   # 18/21 trades, 61% WR. Other hours 0% WR
 
+    news_filter_enabled = False  # Set by backtest engine when news_blackout column present
+
     def init(self):
         self.atr = self.I(atr_from_cols, self.data.High, self.data.Low, self.data.Close, self.atr_period)
         self._asian_high = None
@@ -29,6 +31,14 @@ class LondonBreakoutStrategy(Strategy):
         atr_val = self.atr[-1]
         if np.isnan(atr_val) or atr_val <= 0:
             return
+
+        # News filter: skip entry during high-impact news blackout
+        if self.news_filter_enabled:
+            try:
+                if self.data.news_blackout[-1]:
+                    return
+            except AttributeError:
+                pass
 
         # ATR minimum filter: need enough volatility (0=disabled)
         if self.atr_min > 0 and atr_val < self.atr_min:

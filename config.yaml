@@ -24,6 +24,11 @@ instruments:
     pip_value: 0.25
     default_timeframe: "1h"
 
+news_filter:
+  enabled: true
+  window_minutes: 60
+  impact_levels: ["high"]
+
 backtest:
   default_period: "6mo"
   commission: 0.0002
